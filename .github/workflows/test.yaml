@@ -2,29 +2,31 @@ name: List EC2 Instances
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 permissions:
-  id-token: write
+  id-token: write   # required for OIDC
   contents: read
 
 jobs:
   list-ec2:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials using OIDC
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
-        aws-region: us-west-2
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}   # or: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+          role-session-name: gh-actions-list-ec2
 
-    - name: List EC2 Instances
-      run: |
-        aws ec2 describe-instances \
-          --query "Reservations[*].Instances[*].InstanceId" \
-          --output table
+      - name: Who am I?
+        run: aws sts get-caller-identity
+
+      - name: List EC2 Instances
+        run: |
+          aws ec2 describe-instances \
+            --query "Reservations[*].Instances[*].InstanceId" \
+            --output table
